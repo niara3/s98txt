@@ -274,7 +274,13 @@ public class Main {
 		}
 	}
 
+	private static final int IDX_REG_TIMER_A_HI = 0x24;
+	private static final int IDX_REG_TIMER_A_LO = 0x25;
+	private static final int IDX_REG_TIMER_B = 0x26;
+	private static final int IDX_REG_TIMER_CTRL = 0x27;
 	private static final int IDX_REG_FM_SLOT_CH = 0x28;
+
+	//private static final int MASTER_CLOCK = 1;	// マスタークロック　暫定
 
 	private static int exeDumpData(byte[] buf, int size, int adr, BufferedWriter bw) throws IOException {
 		int index = 0;
@@ -332,12 +338,39 @@ public class Main {
 
 			if (0 < sync)
 			{
+				int wait = 0;
 				for (int dev=0; dev < NUM_DEVICE; dev ++)
 				{
 					byte[] regNow = regNows[dev];
 					if (null == regNow)
 					{
 						continue;
+					}
+
+					if (0 >= wait)	// 暫定　デバイス番号の小さい方を優先して採用
+					{
+						byte timerCtrl = regNow[IDX_REG_TIMER_CTRL];
+
+						if (0 != (0x01 & timerCtrl))	//TimerA start
+						{
+							int ta = 
+									(regNow[IDX_REG_TIMER_A_HI] << 2) +
+									(0x03 & regNow[IDX_REG_TIMER_A_LO]);
+							//wait = 72 * (1024 - ta) / MASTER_CLOCK;// 元の式
+							wait = 1024 - ta;	// 元の式をMASTER_CLOCK/72倍して相対化
+						}
+
+						if (0 != (0x02 & timerCtrl))	//TimerB start
+						{
+							int nb = regNow[IDX_REG_TIMER_B];
+							//int waitB = 1152 * (256 - nb) / MASTER_CLOCK;// 元の式
+							int waitB = 16 * (256 - nb);	// 元の式をMASTER_CLOCK/72倍して相対化
+
+							if (0 >= wait || wait > waitB)	// 暫定 AB両方startなら時間の短い方を採用
+							{
+								wait = waitB;
+							}
+						}
 					}
 
 					String strAdr = String.format("%06x: ", adr+indexTop);
@@ -359,7 +392,7 @@ public class Main {
 							regPrv, 0,	// dst
 							NUM_ALL_REG);
 				}
-				bw.write(String.format("%06x: %d SYNC\n", adr+indexTop, sync));
+				bw.write(String.format("%06x: %d SYNC (%d)\n", adr+indexTop, sync, wait*sync));
 			}
 			else
 			{
