@@ -205,7 +205,7 @@ public class Main {
 				bw.write(String.format("CLOCK(Hz): %08x\n", intbuf[1]));
 				bw.write(String.format("PAN: %08x\n", intbuf[2]));
 				bw.write(String.format("RESERVE: %08x\n", intbuf[3]));
-				if (2 != intbuf[1])	// OPNでない
+				if (2 != intbuf[0])	// OPNでない
 				{
 					System.out.println("inFile: DEVICE TYPE error (OPN only)");
 					return;	// TODO: OPNA(SB2)やOPM(X68k)にも対応したいところ
