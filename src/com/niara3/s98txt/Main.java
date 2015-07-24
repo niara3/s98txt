@@ -44,6 +44,8 @@ public class Main {
 		// FM_NOTE ... チャンネルごとの0x28レジスタ値
 		0x00,0x00,0x00,                                                                 // IDX_REG_FM_SLOT_CH's ch*3
 	};
+
+	private static final int SIZE_REC_DEVINFO = 0x10;
 	private static byte[][] regPrvs;
 	private static byte[][] regNows;
 	private static LinkedList<ByteBuffer> toneColorList = new LinkedList<ByteBuffer>();
@@ -147,8 +149,18 @@ public class Main {
 			System.out.println("outFile: HEADER dump write");
 
 			errorStr = "outFile: write HEADER error";
+			if (0x53 != buf[0] || 0x39 != buf[1] || 0x38 != buf[2])
+			{
+				System.out.println("inFile: MAGIC error");
+				return;
+			}
+			if (0x33 != buf[3])
+			{
+				System.out.println("inFile: FORMAT VERSION error");
+				return;
+			}
 			int[] intbuf = new int[7];
-			cnvLEs(buf, 4, intbuf, 7);
+			cnvLEs(buf, 4, intbuf, intbuf.length);
 
 			bw.write("[HEADER FORMAT]\n");
 			bw.write("MAGIC: 'S98'\nFORMAT VERSION '3'\n");
@@ -164,23 +176,13 @@ public class Main {
 			int sizeTag = adr - 0x30;
 			int numDevice = intbuf[6];
 
-			if (0x53 != buf[0] || 0x39 != buf[1] || 0x38 != buf[2])
-			{
-				System.out.println("inFile: MAGIC error");
-				return;
-			}
-			if (0x33 != buf[3])
-			{
-				System.out.println("inFile: FORMAT VERSION error");
-				return;
-			}
 			if (0x0 >= numDevice || NUM_DEVICE < numDevice)
 			{
 				System.out.println("inFile: DEVICE COUNT error (1-64)");
 				return;
 			}
 
-			int num = 0x10 * numDevice;
+			int num = SIZE_REC_DEVINFO * numDevice;
 
 			errorStr = "inFile: read HEADER(device) error";
 			in.read(buf, 0, num);
@@ -197,7 +199,7 @@ public class Main {
 			intbuf = new int[4];
 			for (int cntDevice=0; cntDevice < numDevice; cntDevice++)
 			{
-				cnvLEs(buf, 4*4 * cntDevice, intbuf, 4);
+				cnvLEs(buf, SIZE_REC_DEVINFO * cntDevice, intbuf, intbuf.length);
 				bw.write(String.format("[DEVICE INFO #%d]\n", cntDevice+1));
 				bw.write(String.format("DEVICE TYPE: %08x\n", intbuf[0]));
 				bw.write(String.format("CLOCK(Hz): %08x\n", intbuf[1]));
@@ -469,7 +471,7 @@ public class Main {
 		{
 			//if (valRegPrv != valRegNow)
 			//{
-				bw.write("ON");
+				bw.write("ON");	// TODO:ONキープなのか、OFF＋ONなのか
 			//}
 			//else
 			//{
