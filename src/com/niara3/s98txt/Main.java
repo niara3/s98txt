@@ -197,7 +197,7 @@ public class Main {
 			intbuf = new int[4];
 			for (int cntDevice=0; cntDevice < numDevice; cntDevice++)
 			{
-				cnvLEs(buf, 4 * cntDevice, intbuf, 4);
+				cnvLEs(buf, 4*4 * cntDevice, intbuf, 4);
 				bw.write(String.format("[DEVICE INFO #%d]\n", cntDevice+1));
 				bw.write(String.format("DEVICE TYPE: %08x\n", intbuf[0]));
 				bw.write(String.format("CLOCK(Hz): %08x\n", intbuf[1]));
