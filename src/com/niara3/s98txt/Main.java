@@ -534,7 +534,7 @@ public class Main {
 			valRegNow = regChNow[RegCh_FM.IDX_BLOCK_F_NUM.ordinal()];
 			if (valRegPrv != valRegNow)
 			{
-				bw.write(String.format(" %04x %s\n", 0x3fff & valRegNow, getFMTone(valRegNow)));
+				bw.write(String.format(" %04x %s\n", 0x7ff & valRegNow, getFMTone(valRegNow)));
 			}
 			else
 			{
@@ -571,20 +571,23 @@ public class Main {
 		0x410,	// a
 		0x44e,	// a+
 		0x48f,	// b
+		0x26a*2,// c
 	};
 
-	private static String getFMTone(final int toneFM) {	//変
-		int hi, lo;
-		for (int t=FM_F_Numbers.length-1; t>0; t --)
+	private static String getFMTone(final int toneFM) {
+		int fNumber = 0x7ff & toneFM;
+
+		for (int idx=0; idx<FM_F_Numbers.length-2; idx++)
 		{
-			hi = 0x7ff & FM_F_Numbers[t];
-			lo = 0x7ff & FM_F_Numbers[t-1];
-			if (toneFM > hi - (hi - lo) / 2)
+			int lo = 0x7ff & FM_F_Numbers[idx+0];	// c～b
+			int hi = 0x7ff & FM_F_Numbers[idx+1];	// c+～c
+			if (fNumber < hi - (hi - lo) / 2)
 			{
-				return String.format("o%d%s", (toneFM >> 11)+1, Tones[Tones.length-1-t]);
+				return String.format("o%d%s", (toneFM >> 11)+1, Tones[idx]);
 			}
+			lo = hi;
 		}
-		return String.format("o%d", (toneFM >> 11)+1);
+		return String.format("??");
 	}
 
 	private static short[] getFMCh(byte[] reg, int cho, int slot) {
@@ -717,45 +720,35 @@ public class Main {
 	//}
 
 	private static final short[] SSG_o1_Tones = {
-		0xee8,	// o1 c
-		0xe12,	// o1 c+
-		0xd48,	// o1 d
-		0xc89,	// o1 d+
-		0xbd5,	// o1 e
-		0xb2b,	// o1 f
-		0xa8a,	// o1 f+
-		0x9f3,	// o1 g
-		0x964,	// o1 g+
-		0x8dd,	// o1 a
-		0x85e,	// o1 a+
-		0x7e6,	// o1 b
+		0x0ee8,	// o1 c
+		0x0e12,	// o1 c+
+		0x0d48,	// o1 d
+		0x0c89,	// o1 d+
+		0x0bd5,	// o1 e
+		0x0b2b,	// o1 f
+		0x0a8a,	// o1 f+
+		0x09f3,	// o1 g
+		0x0964,	// o1 g+
+		0x08dd,	// o1 a
+		0x085e,	// o1 a+
+		0x07e6,	// o1 b
+		0x0ee8/2,// o2 c
 	};
 
 	private static String getSSGTone(final int toneSSG) {
-		for (int o=0; o<8; o ++)
+		for (int i=0; i<(SSG_o1_Tones.length-1)*8; i ++)
 		{
-			int hi, lo;
-			for (int t=1; t<SSG_o1_Tones.length; t ++)
-			{
-				hi = SSG_o1_Tones[t-1] >> o;
-				lo = SSG_o1_Tones[t] >> o;
-				if (toneSSG > hi - (hi - lo) / 2)
-				{
-					return String.format("o%d%s", o+1, Tones[t-1]);
-				}
-			}
-			if (7<=o)
-			{
-				break;
-			}
-			hi = SSG_o1_Tones[SSG_o1_Tones.length-1] >> o;
-			lo = SSG_o1_Tones[0] >> (o+1);
+			int oct = i / (SSG_o1_Tones.length-1);
+			int idx = i % (SSG_o1_Tones.length-1);
+
+			int hi = SSG_o1_Tones[idx+0] >> oct;	// c～b
+			int lo = SSG_o1_Tones[idx+1] >> oct;	// c+～c
 			if (toneSSG > hi - (hi - lo) / 2)
 			{
-				return String.format("o%d%s", o+1, Tones[SSG_o1_Tones.length-1]);
+				return String.format("o%d%s", oct+1, Tones[idx]);
 			}
 		}
-		return "o8b";
+		return "o9c over?";
 	}
 
 	private static short[] getSSGCh(byte[] reg, int cho) {
